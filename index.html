@@ -59,9 +59,9 @@ header('Content-Type: application/json');
 header('access-control-allow-origin: *');
 header('Access-Control-Allow-Headers: *');
 include "dbsql.php";
-$stmt = $db-&gt;prepare("SELECT id, name, age FROM mahasiswa");
-$stmt-&gt;execute();
-$result = $stmt-&gt;fetchAll(PDO::FETCH_ASSOC);
+$stmt = $db->prepare("SELECT nim, nama, prodi, umur FROM mahasiswa");
+$stmt->execute();
+$result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 echo json_encode($result);
 ?&gt;</code></pre>
 
@@ -70,238 +70,233 @@ echo json_encode($result);
 header('Content-Type: application/json');
 header('access-control-allow-origin: *');
 header('Access-Control-Allow-Headers: *');
+
 include "dbsql.php";
-$id = $_POST['id'];
-$age = (int) $_POST['age'];
-$stmt = $db-&gt;prepare("INSERT INTO mahasiswa (age, age) VALUES (?, ?)");
-$result = $stmt-&gt;execute([$age, $age]);
-echo json_encode(['success' =&gt; $result]);
-?&gt;</code></pre>
+
+// Ambil data dari POST
+$nim = $_POST['nim'];
+$nama = $_POST['nama'];
+$prodi = $_POST['prodi'];
+$umur = (int) $_POST['umur']; // konversi ke integer
+
+// Siapkan dan jalankan query
+$stmt = $db->prepare("INSERT INTO mahasiswa (nim, nama, prodi, umur) VALUES (?, ?, ?, ?)");
+$result = $stmt->execute([$nim, $nama, $prodi, $umur]);
+
+// Kirim response JSON
+echo json_encode(['success' => $result]);
+?
+&gt;</code></pre>
 
         <li>Membuat file model pada Flutter</li>
-        <pre><code>class Mahasiswa {
-    String id;
-    String name;
-    int age;
+        <pre><code>class Mahasiswamodel {
+  String? nim;
+  String? nama;
+  String? prodi;
+  int? umur;
 
-    Mahasiswa({this.id, this.name, this.age});
+  Mahasiswamodel({this.nim, this.nama, this.prodi, this.umur});
 
-    factory Mahasiswa.fromJson(Map&lt;String, dynamic&gt; json) =&gt; Mahasiswa(
-        id: json['id'],
-        name: json['name'],
-        age: json['age'],
-    );
+  factory Mahasiswamodel.fromJson(Map<String, dynamic> json) => Mahasiswamodel(
+        nim: json['nim'],
+        nama: json['nama'],
+        prodi: json['prodi'],
+        umur: json['umur'],
+      );
 
-    Map&lt;String, dynamic&gt; toJson() =&gt; {
-        'id': id,
-        'name': name,
-        'age': age,
-    };
-}</code></pre>
+  Map<String, dynamic> toJson() => {
+        'nim': nim,
+        'nama': nama,
+        'prodi': prodi,
+        'umur': umur,
+      };
+}
+</code></pre>
 
         <li>Membuat halaman main</li>
         <pre><code>import 'package:flutter/material.dart';
 import './view/home.dart';
 import './view/crud.dart';
 
-void main() =&gt; runApp(MyApp());
+void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-    @override
-    Widget build(BuildContext context) {
-        return MaterialApp(
-            title: 'Flutter API MYSQL',
-            initialRoute: '/',
-            routes: {
-                '/': (context) =&gt; Home(),
-                '/crud': (context) =&gt; CRUD(),
-            },
-        );
-    }
-}</code></pre>
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter API MYSQL',
+      initialRoute: '/',
+      routes: {
+        '/': (context) => Home(),
+        '/crud': (context) => CRUD(),
+      },
+    );
+  }
+}
+</code></pre>
 
         <li>Membuat halaman home</li>
         <pre><code>import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../models/mahasiswa.dart';
+import '../models/mahasiswamodel.dart';
 import './crud.dart';
 
 class Home extends StatefulWidget {
-    Home({Key key}) : super(key: key);
+  Home({Key? key}) : super(key: key);
 
-    @override
-    HomeState createState() =&gt; HomeState();
+  @override
+  HomeState createState() => HomeState();
 }
 
-class HomeState extends State&lt;Home&gt; {
-    List _mahasiswa = [];
+class HomeState extends State<Home> {
+  List _mahasiswa = [];
 
-    @override
-    void initState() {
-        refreshdatamhs();
-        super.initState();
-    }
+  @override
+  void initState() {
+    refreshdatamhs();
+    super.initState();
+  }
 
-    void refreshdatamhs() async {
-        final hasil = await http.get(Uri.parse("https://inattentive-arrange.000webhostapp.com/list.php"));
-        print(hasil.statusCode);
-        print(hasil.body);
-        setState(() {
-            _mahasiswa = json.decode(hasil.body);
-        });
-    }
+  void refreshdatamhs() async {
+    final hasil =
+        await http.get(Uri.parse("http://192.168.0.112/utsmobile/list.php"));
+    print(hasil.statusCode);
+    print(hasil.body);
+    setState(() {
+      _mahasiswa = json.decode(hasil.body);
+    });
+  }
 
-    @override
-    Widget build(BuildContext context) {
-        return Scaffold(
-            appBar: AppBar(title: Text('Data Mahasiswa API MYSQL')),
-            body: ListView.builder(
-                itemCount: _mahasiswa.length,
-                itemBuilder: (context, index) =&gt; Card(
-                    margin: const EdgeInsets.all(15),
-                    child: ListTile(
-                        title: Text(_mahasiswa[index]['name'].toString()),
-                        subtitle: Text(_mahasiswa[index]['age'].toString()),
-                        trailing: SizedBox(
-                            width: 100,
-                            child: Row(
-                                children: [
-                                    IconButton(
-                                        onPressed: () {
-                                            Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                    builder: (context) =&gt; CRUD(datamhs: _mahasiswa[index]),
-                                                ),
-                                            );
-                                        },
-                                        icon: const Icon(Icons.edit),
-                                    ),
-                                    IconButton(
-                                        onPressed: () {
-                                            confhapusdatamhs(_mahasiswa[index]['id']);
-                                        },
-                                        icon: const Icon(Icons.delete),
-                                    ),
-                                ],
-                            ),
-                        ),
-                    ),
-                ),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Data Mahasiswa API MYSQL')),
+      body: ListView.builder(
+        itemCount: _mahasiswa.length,
+        itemBuilder: (context, index) => Card(
+          margin: const EdgeInsets.all(15),
+          child: ListTile(
+            title: Text(_mahasiswa[index]['nim']),
+            subtitle: Text("""
+${_mahasiswa[index]['nama']}
+(${_mahasiswa[index]['prodi']}) ${_mahasiswa[index]['umur']}"""),
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.add),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CRUD(datamhs: null),
             ),
-            floatingActionButton: FloatingActionButton(
-                child: Icon(Icons.add),
-                onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =&gt; CRUD(datamhs: null),
-                        ),
-                    );
-                },
-            ),
-        );
-    }
-}</code></pre>
+          );
+        },
+      ),
+    );
+  }
+}
+</code></pre>
 
         <li>Membuat form tambah data</li>
         <pre><code>import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../models/mahasiswa.dart';
 
 class CRUD extends StatefulWidget {
-    final Map datamhs;
-    CRUD({Key key, @required this.datamhs}) : super(key: key);
+  final Map<String, dynamic>? datamhs;
+  CRUD({Key? key, @required this.datamhs}) : super(key: key);
 
-    @override
-    CRUDState createState() =&gt; CRUDState();
+  @override
+  CRUDState createState() => CRUDState();
 }
 
-class CRUDState extends State&lt;CRUD&gt; {
-    String status;
-    TextEditingController nameController = new TextEditingController();
-    TextEditingController ageController = new TextEditingController();
+class CRUDState extends State<CRUD> {
+  String status = "Tambah Data Mahasiswa";
+  TextEditingController nimController = TextEditingController();
+  TextEditingController namaController = TextEditingController();
+  TextEditingController prodiController = TextEditingController();
+  TextEditingController umurController = TextEditingController();
 
-    Future tambahmhs() async {
-        return await http.post(
-            Uri.parse("https://inattentive-arrange.000webhostapp.com/create.php"),
-            body: {
-                "name": nameController.text,
-                "age": ageController.text,
-            },
-        );
-    }
+  @override
+  void initState() {
+    super.initState();
+    nimController.text = "";
+    namaController.text = "";
+    prodiController.text = "";
+    umurController.text = "";
+  }
 
-    Future ubahmhs() async {
-        return await http.post(
-            Uri.parse("https://inattentive-arrange.000webhostapp.com/update.php"),
-            body: {
-                "id": widget.datamhs['id'].toString(),
-                "name": nameController.text,
-                "age": ageController.text,
-            },
-        );
-    }
+  Future tambahmhs() async {
+    final response = await http.post(
+      Uri.parse("http://192.168.0.112/utsmobile/create.php"),
+      body: {
+        "nim": nimController.text,
+        "nama": namaController.text,
+        "prodi": prodiController.text,
+        "umur": umurController.text,
+      },
+    );
+  }
 
-    @override
-    Widget build(BuildContext context) {
-        if (widget.datamhs != null) {
-            status = "Ubah Data Mahasiswa";
-            nameController.text = "${widget.datamhs['name']}";
-            ageController.text = "${widget.datamhs['age']}";
-        } else {
-            status = "Tambah Data Mahasiswa";
-            nameController.text = "";
-            ageController.text = "";
-        }
-
-        return Scaffold(
-            appBar: AppBar(
-                title: Text(status),
-            ),
-            body: Container(
-                height: double.infinity,
-                padding: EdgeInsets.all(20),
-                child: Center(
-                    child: Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                                TextFormField(
-                                    controller: nameController,
-                                    keyboardType: TextInputType.text,
-                                    decoration: InputDecoration(labelText: 'Name'),
-                                ),
-                                const SizedBox(height: 10),
-                                TextFormField(
-                                    controller: ageController,
-                                    keyboardType: TextInputType.number,
-                                    decoration: InputDecoration(labelText: 'Age'),
-                                ),
-                                const SizedBox(height: 10),
-                                ElevatedButton(
-                                    onPressed: () async {
-                                        if (widget.datamhs == null) {
-                                            await tambahmhs();
-                                        } else {
-                                            await ubahmhs();
-                                        }
-                                        Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) =&gt; false);
-                                    },
-                                    child: Text(widget.datamhs == null ? 'Tambah' : 'Ubah'),
-                                ),
-                            ],
-                        ),
-                    ),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(status),
+      ),
+      body: Container(
+        height: double.infinity,
+        padding: EdgeInsets.all(20),
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.all(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                TextFormField(
+                  controller: nimController,
+                  keyboardType: TextInputType.text,
+                  decoration: InputDecoration(labelText: 'nim'),
                 ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: namaController,
+                  keyboardType: TextInputType.text,
+                  decoration: InputDecoration(labelText: 'nama'),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: prodiController,
+                  keyboardType: TextInputType.text,
+                  decoration: InputDecoration(labelText: 'prodi'),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: umurController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: 'umur'),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () async {
+                    await tambahmhs();
+                    Navigator.pushNamedAndRemoveUntil(
+                        context, '/', (route) => false);
+                  },
+                  child: Text('Tambah'),
+                ),
+              ],
             ),
-        );
-    }
-}</code></pre>
+          ),
+        ),
+      ),
+    );
+  }
+}
+</code></pre>
     </ol>
 </body>
 
